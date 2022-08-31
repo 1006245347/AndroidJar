@@ -1,0 +1,102 @@
+plugins {
+    id 'com.android.library'
+}
+
+android {
+    compileSdk 32
+
+    defaultConfig {
+        minSdk 21
+        targetSdk 32
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles "consumer-rules.pro"
+
+        ndk {
+            abiFilters 'armeabi', 'armeabi-v7a', 'arm64-v8a', 'x86'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['libs']
+        }
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.3.0'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+
+    implementation 'com.tencent:mmkv:1.0.22'
+    implementation 'com.squareup.okhttp3:okhttp:3.6.0'
+    implementation 'com.github.gzu-liyujiang:Android_CN_OAID:4.2.4'
+}
+//以下是打包相关任务
+//执行任务： minifyEnabled=true,该jar也不会被混淆代码  ，以下路径都要改成自己实际的环境
+task makeJar(type: Jar) {
+    archivesBaseName = "ajlib-0.0.2" //可自定义包名
+    //sdk内的自己写的库
+//    from(project.zipTree('E:\\jason_android\\work_space\\ReformCode\\sdk\\build\\intermediates\\compile_library_classes_jar\\release\\classes.jar'))
+    //sdk需要引入的第三库，在Project->External Libraries下依赖的库copy path   !!!
+    //window电脑路径
+//    from(project.zipTree('E:\\jason_android\\androidstudy\\gradle-7.2\\wrapper\\dists\\gradle-7.2-bin\\wrapper\\dists\\gradle-7.2-bin\\caches\\transforms-3\\fcf7f6dc9531208c3cf21abdefe43137\\transformed\\mmkv-1.0.22\\jars\\classes.jar'))
+//    from(project.zipTree('E:\\jason_android\\androidstudy\\gradle-7.2\\wrapper\\dists\\gradle-7.2-bin\\wrapper\\dists\\gradle-7.2-bin\\caches\\modules-2\\files-2.1\\com.squareup.okhttp3\\okhttp\\3.6.0\\69edde9fc4b01c9fd51d25b83428837478c27254\\okhttp-3.6.0.jar'))
+//    from(project.zipTree('E:\\jason_android\\androidstudy\\gradle-7.2\\wrapper\\dists\\gradle-7.2-bin\\wrapper\\dists\\gradle-7.2-bin\\caches\\modules-2\\files-2.1\\com.squareup.okio\\okio\\1.11.0\\840897fcd7223a8143f1d9b6f69714e7be34fd50\\okio-1.11.0.jar'))
+//    from(project.zipTree('E:\\jason_android\\androidstudy\\gradle-7.2\\wrapper\\dists\\gradle-7.2-bin\\wrapper\\dists\\gradle-7.2-bin\\caches\\transforms-3\\a8df0968f62e0eb889f85a2c877df4df\\transformed\\Android_CN_OAID-4.2.4\\jars\\classes.jar'))
+
+    //mac电脑路径
+    //业务代码路径
+    from(project.zipTree('/Users/Jason/AndroidWork/AndroidJar/sdk/build/intermediates/compile_library_classes_jar/release/classes.jar'))
+    //三方库 mmkv
+    from(project.zipTree('/Applications/Android/ Studio.app/Contents/jre/Contents/Home/caches/transforms-3/e1669fcc672f7ad7c9a4dd4e50e7e9d9/transformed/mmkv-1.0.22/jars/classes.jar'))
+    //okhttp3.6
+    from(project.zipTree('/Applications/Android/ Studio.app/Contents/jre/Contents/Home/caches/modules-2/files-2.1/com.squareup.okhttp3/okhttp/3.6.0/69edde9fc4b01c9fd51d25b83428837478c27254/okhttp-3.6.0.jar'))
+    //使用jar时，一直报okio.xx没有，我就又把这个加进来不报错
+    from(project.zipTree('/Applications/Android/ Studio.app/Contents/jre/Contents/Home/caches/modules-2/files-2.1/com.squareup.okio/okio/1.11.0/840897fcd7223a8143f1d9b6f69714e7be34fd50/okio-1.11.0.jar'))
+    //oaid
+    from(project.zipTree('/Applications/Android/ Studio.app/Contents/jre/Contents/Home/caches/transforms-3/1f3493369a04905a84d185d63ef27fea/transformed/Android_CN_OAID-4.2.4/jars/classes.jar'))
+    //sdk生成的jar路径，普通的sdk不包含so,但mmkv要用到需要abiFilters，手动拷贝到被调用的module下
+    destinationDir = file('build/libs')
+}
+makeJar.dependsOn(build)
+
+//打混淆jar,要基于 makeJar的任务   //高版本报错  ProGuardTask
+task makeProguardJar(type: proguard.gradle.ProGuardTask, dependsOn: ['makeJar']) {
+    //window电脑路径
+    //未混淆的jar
+//    injars 'E:\\jason_android\\work_space\\ReformCode\\sdk\\build\\libs\\rclib-0.0.5.jar'
+    //指定混淆后的jar输出路径
+//    outjars 'E:\\jason_android\\work_space\\ReformCode\\sdk\\build\\libs\\proguard_rclib-0.0.5.jar'
+
+    //mac电脑路径
+    injars '/Users/Jason/AndroidWork/AndroidJar/sdk/build/libs/ajlib-0.0.2.jar'
+    outjars '/Users/Jason/AndroidWork/AndroidJar/sdk/build/libs/proguard_ajlib-0.0.2.jar'
+
+    //混淆协议
+    configuration 'proguard-rules.pro'
+    dontshrink
+}
+
+task clearJar(type: Delete) {
+    delete 'build/libs/ajlib-0.0.2'
+}
